@@ -40,8 +40,7 @@ type BaseQueries[PK PrimaryKey, R any] interface {
 
 // Database Access Object
 type DAO[PK PrimaryKey, R any] interface {
-	postgres.WritableTable
-	postgres.ReadableTable
+	postgres.Table
 	GetBaseCols
 	GetConflictCols
 	PKMatcher[PK]
