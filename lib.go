@@ -165,7 +165,7 @@ func Delete[PK PrimaryKey, R any, D DAO[PK, R], E qrm.Executable](ctx gctx.Conte
 }
 
 type baseQueryable[PK PrimaryKey, R any] struct {
-	Dao DAO[PK, R]
+	dao DAO[PK, R]
 }
 
 // BaseQueries implements a list of easy methods for jet. This requires the DB connection to be available through the context, using jetkit.WithDB()
@@ -176,37 +176,37 @@ func NewQueryable[PK PrimaryKey, R any](dao DAO[PK, R]) BaseQueries[PK, R] {
 }
 
 func (q *baseQueryable[PK, R]) Index(ctx gctx.Context, params *SearchParams) ([]*R, error) {
-	return Index(ctx, q.Dao, params, GetDB(ctx))
+	return Index(ctx, q.dao, params, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) GetOne(ctx gctx.Context, pk PK) (*R, error) {
-	return GetOne(ctx, q.Dao, pk, GetDB(ctx))
+	return GetOne(ctx, q.dao, pk, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) GetMany(ctx gctx.Context, pks []PK) ([]*R, error) {
-	return GetMany(ctx, q.Dao, pks, GetDB(ctx))
+	return GetMany(ctx, q.dao, pks, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) Insert(ctx gctx.Context, model *R) error {
-	return Insert(ctx, q.Dao, model, GetDB(ctx))
+	return Insert(ctx, q.dao, model, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) InsertMany(ctx gctx.Context, models []*R) error {
-	return InsertMany(ctx, q.Dao, models, GetDB(ctx))
+	return InsertMany(ctx, q.dao, models, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) Upsert(ctx gctx.Context, model *R) error {
-	return Upsert(ctx, q.Dao, model, GetDB(ctx))
+	return Upsert(ctx, q.dao, model, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) UpsertMany(ctx gctx.Context, models []*R) error {
-	return UpsertMany(ctx, q.Dao, models, GetDB(ctx))
+	return UpsertMany(ctx, q.dao, models, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) Update(ctx gctx.Context, model *R, pk PK) error {
-	return Update(ctx, q.Dao, model, pk, GetDB(ctx))
+	return Update(ctx, q.dao, model, pk, GetDB(ctx))
 }
 
 func (q *baseQueryable[PK, R]) Delete(ctx gctx.Context, pk PK) error {
-	return Delete(ctx, q.Dao, pk, GetDB(ctx))
+	return Delete(ctx, q.dao, pk, GetDB(ctx))
 }
