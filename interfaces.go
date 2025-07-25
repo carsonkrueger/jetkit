@@ -26,11 +26,6 @@ type GetUpdatedAt[R any] interface {
 	GetUpdatedAt(row *R) *time.Time
 }
 
-type GetTable interface {
-	WTable() postgres.WritableTable
-	RTable() postgres.ReadableTable
-}
-
 type BaseQueries[PK PrimaryKey, R any] interface {
 	Index(ctx gctx.Context, params *SearchParams) ([]*R, error)
 	GetOne(ctx gctx.Context, pk PK) (*R, error)
@@ -45,10 +40,10 @@ type BaseQueries[PK PrimaryKey, R any] interface {
 
 // Database Access Object
 type DAO[PK PrimaryKey, R any] interface {
-	GetTable
+	postgres.WritableTable
+	postgres.ReadableTable
 	GetBaseCols
 	GetConflictCols
 	PKMatcher[PK]
 	GetUpdatedAt[R]
-	BaseQueries[PK, R]
 }

@@ -15,7 +15,7 @@ var (
 
 // params are optional and can be used to filter, sort, paginate, and limit the results of a query.
 func Index[PK PrimaryKey, R any, D DAO[PK, R]](ctx gctx.Context, dao D, params *SearchParams, db qrm.Queryable) ([]*R, error) {
-	query := dao.RTable().SELECT(dao.AllCols())
+	query := dao.SELECT(dao.AllCols())
 	if params != nil {
 		if params.Where != nil {
 			query = query.WHERE(params.Where)
@@ -39,7 +39,7 @@ func Index[PK PrimaryKey, R any, D DAO[PK, R]](ctx gctx.Context, dao D, params *
 
 func GetOne[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, pk PK, db Q) (*R, error) {
 	var model R
-	if err := dao.RTable().
+	if err := dao.
 		SELECT(dao.AllCols()).
 		WHERE(dao.PKMatch(pk)).
 		LIMIT(1).
@@ -61,7 +61,7 @@ func GetMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Conte
 	for _, pk := range pks[1:] {
 		where = where.OR(dao.PKMatch(pk))
 	}
-	if err := dao.RTable().
+	if err := dao.
 		SELECT(dao.AllCols()).
 		WHERE(where).
 		QueryContext(ctx, db, &rows); err != nil {
@@ -74,7 +74,7 @@ func Insert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Contex
 	if row == nil {
 		return ErrNilParams
 	}
-	return dao.WTable().
+	return dao.
 		INSERT(dao.InsertCols()).
 		MODEL(row).
 		RETURNING(dao.AllCols()).
@@ -85,7 +85,7 @@ func InsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Co
 	if rows == nil {
 		return ErrNilParams
 	}
-	return dao.WTable().
+	return dao.
 		INSERT(dao.InsertCols()).
 		MODELS(rows).
 		RETURNING(dao.AllCols()).
@@ -102,7 +102,7 @@ func Upsert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Contex
 	}
 	conflictCols := dao.OnConflictCols()
 	updateCols := dao.UpdateOnConflictCols()
-	query := dao.WTable().
+	query := dao.
 		INSERT(dao.UpdateCols()).
 		MODEL(model)
 	if len(updateCols) > 0 && len(conflictCols) > 0 {
@@ -127,7 +127,7 @@ func UpsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Co
 	}
 	conflictCols := dao.OnConflictCols()
 	updateCols := dao.UpdateOnConflictCols()
-	query := dao.WTable().
+	query := dao.
 		INSERT(dao.UpdateCols()).
 		MODELS(rows)
 	if len(updateCols) > 0 && len(conflictCols) > 0 {
@@ -148,7 +148,7 @@ func Update[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Contex
 	if up != nil {
 		*up = time.Now()
 	}
-	return dao.WTable().
+	return dao.
 		UPDATE(dao.UpdateCols()).
 		MODEL(model).
 		WHERE(dao.PKMatch(pk)).
@@ -157,7 +157,7 @@ func Update[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Contex
 }
 
 func Delete[PK PrimaryKey, R any, D DAO[PK, R], E qrm.Executable](ctx gctx.Context, dao D, pk PK, db E) error {
-	_, err := dao.WTable().
+	_, err := dao.
 		DELETE().
 		WHERE(dao.PKMatch(pk)).
 		ExecContext(ctx, db)
