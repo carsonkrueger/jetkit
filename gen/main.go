@@ -6,7 +6,8 @@ import (
 	"os"
 	"strings"
 	"text/template"
-	"unicode"
+
+	"getsignals.ai/jetkit/internal/snaker"
 )
 
 const baseStructTemplate = `package {{.PackageName}}
@@ -80,7 +81,7 @@ func main() {
 	structPrefix := os.Getenv("JETKIT_")
 	goFile = "/home/carson/Repos/jetkit/main/main.go" // remove me
 	goPackage = "main"                                // remove me
-	dbPath = "github.com/jetkit/database"
+	dbPath = "github.com/jetkit/database"             // remove me
 
 	var (
 		pk                 = flag.String("pk", "", "Primary key column names as key:value pair (e.g. id:string,user_id:integer)")
@@ -130,14 +131,14 @@ func main() {
 	if *updateCol == "" || *updateCol == "nil" {
 		updatedAtStr = "nil"
 	} else {
-		updatedAtStr = "row." + toPascalCase(*updateCol)
+		updatedAtStr = "row." + snaker.SnakeToCamel(*updateCol, true)
 	}
 
 	data := TemplateData{
 		PackageName: goPackage,
 		DBPath:      dbPath,
-		Table:       toPascalCase(*table),
-		StructName:  toPascalCase(structPrefix) + toPascalCase(*table),
+		Table:       snaker.SnakeToCamel(*table, true),
+		StructName:  snaker.SnakeToCamel(structPrefix, true) + snaker.SnakeToCamel(*table, true),
 		PKMatch:     buildPKMatch(*table, *pk),
 		InsertCols:  formatCols(*excludedInsertCols),
 		UpdateCols:  formatCols(*excludedUpdateCols),
@@ -198,63 +199,9 @@ func formatCols(cols string) string {
 	}
 	lines := strings.Builder{}
 	for c := range strings.SplitSeq(cols, ",") {
-		lines.WriteString("\t\t" + "table." + toPascalCase(c) + ",\n")
+		lines.WriteString("\t\t" + "table." + snaker.SnakeToCamel(c, true) + ",\n")
 	}
 	return lines.String()
-}
-
-// toPascalCase converts a string in PascalCase, camelCase, or snake_case to PascalCase.
-func toPascalCase(input string) string {
-	if input == "" {
-		return ""
-	}
-
-	// Handle snake_case
-	parts := strings.FieldsFunc(input, func(r rune) bool {
-		return r == '_' || r == '-' || unicode.IsSpace(r)
-	})
-
-	if len(parts) == 1 {
-		// Handle camelCase by splitting on case transition
-		return capitalizeWords(splitCamelCase(parts[0]))
-	}
-
-	// Capitalize each part for PascalCase
-	for i := range parts {
-		parts[i] = capitalize(parts[i])
-	}
-	return strings.Join(parts, "")
-}
-
-func capitalize(s string) string {
-	if len(s) == 0 {
-		return ""
-	}
-	runes := []rune(s)
-	runes[0] = unicode.ToUpper(runes[0])
-	return string(runes)
-}
-
-func splitCamelCase(s string) []string {
-	var words []string
-	var current []rune
-
-	for i, r := range s {
-		if i > 0 && unicode.IsUpper(r) && (len(current) > 0 && unicode.IsLower(current[len(current)-1])) {
-			words = append(words, string(current))
-			current = []rune{}
-		}
-		current = append(current, r)
-	}
-	words = append(words, string(current))
-	return words
-}
-
-func capitalizeWords(parts []string) string {
-	for i, p := range parts {
-		parts[i] = capitalize(p)
-	}
-	return strings.Join(parts, "")
 }
 
 func parsePrimaryKeys(pks string) ([]PrimaryKey, error) {
@@ -262,14 +209,14 @@ func parsePrimaryKeys(pks string) ([]PrimaryKey, error) {
 	for pk := range strings.SplitSeq(pks, ",") {
 		parts := strings.Split(pk, ":")
 		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid primary key format, expecting key:value\n %s", pk)
+			return nil, fmt.Errorf("%s invalid primary key format, expecting key:value", pk)
 		}
 		typ, err := toJetType(parts[1])
 		if err != nil {
 			return nil, err
 		}
 		keys = append(keys, PrimaryKey{
-			Name:    toPascalCase(parts[0]),
+			Name:    snaker.SnakeToCamel(parts[0], true),
 			JetType: typ,
 		})
 	}
@@ -281,18 +228,17 @@ func toJetType(typ string) (string, error) {
 	t := strings.ToLower(strings.TrimSpace(typ))
 
 	switch t {
-	// PostgreSQL types
 	case "text", "varchar", "char", "character varying", "uuid", "inet", "citext", "string", "str":
 		return "String", nil
 	case "bigint", "int8", "integer", "int", "int4", "smallint", "int2", "int16":
 		return "Int", nil
 	case "boolean", "bool":
 		return "Bool", nil
-	case "real", "float4", "double precision", "float8", "float", "float64":
+	case "real", "float4", "double precision", "float8", "float", "float64", "double":
 		return "Float", nil
 	case "numeric", "decimal", "money":
 		return "String", nil
-	case "date", "timestamp", "timestamp without time zone", "timestamp with time zone", "timestamptz":
+	case "date", "timestamp", "timestamp without time zone", "timestamp with time zone", "timestamptz", "datetime":
 		return "Time", nil
 	default:
 		return "", fmt.Errorf("unsupported type: %s", typ)
