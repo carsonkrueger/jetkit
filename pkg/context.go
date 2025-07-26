@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrUnsupportedDBType = errors.New("unsupported database type")
+	ErrTxAlreadyStarted  = errors.New("transaction already started")
 )
 
 type dbKeyType struct{}
@@ -34,7 +35,7 @@ func GetDB(ctx context.Context) qrm.DB {
 //
 // Suggested usage:
 //
-// ctx, tx, err := BeginTx(ctx)
+// txCtx, tx, err := BeginTx(ctx)
 //
 //	if err != nil {
 //	    return err
@@ -42,19 +43,20 @@ func GetDB(ctx context.Context) qrm.DB {
 //
 // defer tx.Rollback()
 //
-// // Perform database operations using new ctx
+// // Perform database operations using new txCtx
 //
 // tx.Commit()
 func BeginTx(ctx context.Context) (context.Context, *sql.Tx, error) {
 	switch db := GetDB(ctx).(type) {
 	case *sql.DB:
 		tx, err := db.BeginTx(ctx, nil)
-		if err == nil {
-			ctx = WithDB(ctx, tx)
+		if err != nil {
+			return ctx, nil, err
 		}
-		return ctx, tx, err
+		ctx = WithDB(ctx, tx)
+		return ctx, tx, nil
 	case *sql.Tx:
-		return ctx, db, nil
+		return ctx, db, ErrTxAlreadyStarted
 	default:
 		return ctx, nil, ErrUnsupportedDBType
 	}

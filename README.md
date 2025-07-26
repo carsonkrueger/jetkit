@@ -39,7 +39,7 @@ jet -dsn="postgres://db_user:password@localhost:5432/db_name?sslmode=disable" -s
 ### Then implement the interfaces required by jetkit
 
 ```go
-type UserDAO struct{}
+type UserDAO struct{} // My database access object
 
 func (dao *UserDAO) Table() context.PostgresTable {
 	return table.Users
@@ -86,8 +86,19 @@ func (dao *UserDAO) GetUpdatedAt(row *model.Users) *time.Time {
 ### Finally use the base queries object
 
 ```go
-ctx = jetkit.WithDB(context.Background(), db)
-base := jetkit.NewBaseQueries(&UserDAO{})
+var db *sql.DB
+ctx = jetkit.WithDB(context.Background(), db) // base queries object requires db in the ctx
+userDAO := UserDAO{}
+base := jetkit.NewBaseQueries(&userDAO)
 user := model.Users{}
 base.Insert(ctx, &user)
+```
+
+#### OR call the function directly if you don't like the base queries object
+
+```go
+var db *sql.DB
+userDAO := UserDAO{}
+user := model.Users{}
+jetkit.Insert(ctx, &userDAO, &user, db)
 ```
