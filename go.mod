@@ -1,4 +1,4 @@
-module signals.ai/jetkit
+module getsignals.ai/jetkit
 
 go 1.24.5
 
