@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"getsignals.ai/jetkit/internal/snaker"
+	"github.com/carsonkrueger/jetkit/internal/snaker"
 )
 
 const baseStructTemplate = `package {{.PackageName}}

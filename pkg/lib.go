@@ -1,7 +1,7 @@
 package jetkit
 
 import (
-	gctx "context"
+	"context"
 	"errors"
 	"time"
 
@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	ErrNilParams = errors.New("cannot use nil params in query")
+	ErrNilRows = errors.New("cannot use nil rows in query")
 )
 
 // params are optional and can be used to filter, sort, paginate, and limit the results of a query.
-func Index[PK PrimaryKey, R any, D DAO[PK, R]](ctx gctx.Context, dao D, params *SearchParams, db qrm.Queryable) ([]*R, error) {
+func Index[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, params *SearchParams, db Q) ([]*R, error) {
 	query := dao.SELECT(dao.AllCols())
 	if params != nil {
 		if params.Where != nil {
@@ -37,7 +37,7 @@ func Index[PK PrimaryKey, R any, D DAO[PK, R]](ctx gctx.Context, dao D, params *
 	return models, nil
 }
 
-func GetOne[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, pk PK, db Q) (*R, error) {
+func GetOne[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, pk PK, db Q) (*R, error) {
 	var model R
 	if err := dao.
 		SELECT(dao.AllCols()).
@@ -49,9 +49,9 @@ func GetOne[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Contex
 	return &model, nil
 }
 
-func GetMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, pks []PK, db Q) ([]*R, error) {
+func GetMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, pks []PK, db Q) ([]*R, error) {
 	if pks == nil {
-		return nil, ErrNilParams
+		return nil, ErrNilRows
 	}
 	rows := []*R{}
 	if len(pks) == 0 {
@@ -70,9 +70,9 @@ func GetMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Conte
 	return rows, nil
 }
 
-func Insert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, row *R, db Q) error {
+func Insert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, row *R, db Q) error {
 	if row == nil {
-		return ErrNilParams
+		return ErrNilRows
 	}
 	return dao.
 		INSERT(dao.InsertCols()).
@@ -81,9 +81,9 @@ func Insert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Contex
 		QueryContext(ctx, db, row)
 }
 
-func InsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, rows []*R, db Q) error {
+func InsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, rows []*R, db Q) error {
 	if rows == nil {
-		return ErrNilParams
+		return ErrNilRows
 	}
 	return dao.
 		INSERT(dao.InsertCols()).
@@ -92,9 +92,9 @@ func InsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Co
 		QueryContext(ctx, db, rows)
 }
 
-func Upsert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, model *R, db Q) error {
+func Upsert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, model *R, db Q) error {
 	if model == nil {
-		return ErrNilParams
+		return ErrNilRows
 	}
 	up := dao.GetUpdatedAt(model)
 	if up != nil {
@@ -115,9 +115,9 @@ func Upsert[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Contex
 		QueryContext(ctx, db, model)
 }
 
-func UpsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, rows []*R, db Q) error {
+func UpsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, rows []*R, db Q) error {
 	if rows == nil {
-		return ErrNilParams
+		return ErrNilRows
 	}
 	for _, v := range rows {
 		up := dao.GetUpdatedAt(v)
@@ -140,23 +140,23 @@ func UpsertMany[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Co
 		QueryContext(ctx, db, rows)
 }
 
-func Update[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx gctx.Context, dao D, model *R, pk PK, db Q) error {
-	if model == nil {
-		return ErrNilParams
+func Update[PK PrimaryKey, R any, D DAO[PK, R], Q qrm.Queryable](ctx context.Context, dao D, row *R, pk PK, db Q) error {
+	if row == nil {
+		return ErrNilRows
 	}
-	up := dao.GetUpdatedAt(model)
+	up := dao.GetUpdatedAt(row)
 	if up != nil {
 		*up = time.Now()
 	}
 	return dao.
 		UPDATE(dao.UpdateCols()).
-		MODEL(model).
+		MODEL(row).
 		WHERE(dao.PKMatch(pk)).
 		RETURNING(dao.AllCols()).
-		QueryContext(ctx, db, model)
+		QueryContext(ctx, db, row)
 }
 
-func Delete[PK PrimaryKey, R any, D DAO[PK, R], E qrm.Executable](ctx gctx.Context, dao D, pk PK, db E) error {
+func Delete[PK PrimaryKey, R any, D DAO[PK, R], E qrm.Executable](ctx context.Context, dao D, pk PK, db E) error {
 	_, err := dao.
 		DELETE().
 		WHERE(dao.PKMatch(pk)).
@@ -175,38 +175,38 @@ func NewQueryable[PK PrimaryKey, R any](dao DAO[PK, R]) BaseQueries[PK, R] {
 	}
 }
 
-func (q *baseQueryable[PK, R]) Index(ctx gctx.Context, params *SearchParams) ([]*R, error) {
+func (q *baseQueryable[PK, R]) Index(ctx context.Context, params *SearchParams) ([]*R, error) {
 	return Index(ctx, q.dao, params, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) GetOne(ctx gctx.Context, pk PK) (*R, error) {
+func (q *baseQueryable[PK, R]) GetOne(ctx context.Context, pk PK) (*R, error) {
 	return GetOne(ctx, q.dao, pk, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) GetMany(ctx gctx.Context, pks []PK) ([]*R, error) {
+func (q *baseQueryable[PK, R]) GetMany(ctx context.Context, pks []PK) ([]*R, error) {
 	return GetMany(ctx, q.dao, pks, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) Insert(ctx gctx.Context, model *R) error {
+func (q *baseQueryable[PK, R]) Insert(ctx context.Context, model *R) error {
 	return Insert(ctx, q.dao, model, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) InsertMany(ctx gctx.Context, models []*R) error {
+func (q *baseQueryable[PK, R]) InsertMany(ctx context.Context, models []*R) error {
 	return InsertMany(ctx, q.dao, models, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) Upsert(ctx gctx.Context, model *R) error {
+func (q *baseQueryable[PK, R]) Upsert(ctx context.Context, model *R) error {
 	return Upsert(ctx, q.dao, model, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) UpsertMany(ctx gctx.Context, models []*R) error {
+func (q *baseQueryable[PK, R]) UpsertMany(ctx context.Context, models []*R) error {
 	return UpsertMany(ctx, q.dao, models, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) Update(ctx gctx.Context, model *R, pk PK) error {
+func (q *baseQueryable[PK, R]) Update(ctx context.Context, model *R, pk PK) error {
 	return Update(ctx, q.dao, model, pk, GetDB(ctx))
 }
 
-func (q *baseQueryable[PK, R]) Delete(ctx gctx.Context, pk PK) error {
+func (q *baseQueryable[PK, R]) Delete(ctx context.Context, pk PK) error {
 	return Delete(ctx, q.dao, pk, GetDB(ctx))
 }

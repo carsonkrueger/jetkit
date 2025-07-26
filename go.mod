@@ -1,4 +1,4 @@
-module getsignals.ai/jetkit
+module github.com/carsonkrueger/jetkit
 
 go 1.24.5
 
